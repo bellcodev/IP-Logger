@@ -1,2 +1,5 @@
+__pycache__/
 ips.txt
-IPsDatabase.sb
+IPsDatabase.db
+mapa_ips.html
+.env

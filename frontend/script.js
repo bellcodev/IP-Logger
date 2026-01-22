@@ -23,6 +23,6 @@ window.addEventListener('load', function() {
 
 let path = window.location.pathname;
 
-if (path === '/f/script.js' || path === '/main.py') {
-    window.location.href('/');
+if (path === '/f/script.js'|path === '/main.py') {
+    location.href = '/';
 }

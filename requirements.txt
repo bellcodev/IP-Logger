@@ -1,1 +1,4 @@
 fastapi[all]
+folium
+requests
+python-dotenv
