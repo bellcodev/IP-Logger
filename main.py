@@ -129,3 +129,11 @@ async def map(
 def seeMap():
     return FileResponse("mapa_ips.html")
 
+@app.get("/seeCountry")
+async def seeCountry():
+    conn = sql.connect("IPsDatabase.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT country, COUNT(*) as total FROM IPs GROUP BY country")
+    data = cursor.fetchall()
+    return data
+
