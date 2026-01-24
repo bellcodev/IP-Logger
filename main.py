@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Form, Request
+from fastapi import FastAPI, Form, Request, Body
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,7 +31,6 @@ def send_telegram_message(message: str):
         "text": message
     }
     requests.post(url, json=payload)
-    writeTxt()
 
 def writeTxt():
     conn = sql.connect("IPsDatabase.db")
@@ -47,6 +46,10 @@ def writeTxt():
 @app.get("/")
 def root():
     return FileResponse("frontend/index.html")
+
+@app.get("/admin")
+def admin():
+    return FileResponse("frontend/admin.html")
 
 @app.post("/getIp")
 async def getIp(
@@ -70,10 +73,12 @@ WHERE rowid NOT IN (
 );""")
     conn.commit()
     conn.close()
+    mapIp()
+    writeTxt()
     return {"status": "ok"}
 
 @app.get("/map")
-async def map(
+async def mapIp(
     request: Request
 ):
     conn = sql.connect("IPsDatabase.db")
@@ -137,3 +142,14 @@ async def seeCountry():
     data = cursor.fetchall()
     return data
 
+@app.get("/getMap")
+async def getMap():
+    text = ""
+    with open("mapa_ips.html", "r", encoding="utf-8") as f:
+        text = f.read()
+    return text
+
+@app.post("/alertAdmin")
+async def alertAdmin(data: dict = Body(...)):
+    message = data["message"]
+    send_telegram_message(message)

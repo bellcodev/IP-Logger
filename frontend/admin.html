@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #333333;
+            text-align: center;
+        }
+
+        .info {
+            padding: 15px;
+            background: #54ff54;
+            border-radius: 10px;
+            margin: 10px;
+            box-shadow: 0 0 35px #222222;
+            max-width: 800px;
+            margin: auto;
+        }
+
+        button {
+            background: radial-gradient(#00ff00, #222222);
+            border: 1px solid #222222;
+            border-radius: 7px;
+            color: #000000;
+        }
+    </style>
+</head>
+<body>
+    <div id="content"></div>
+
+    <script>
+        const content = document.getElementById("content")
+        content.innerHTML = `
+            <input id="user" type="text">
+            <br>
+            <input id="pswd" type="password">
+            <br>
+            <button id="sendBtn">Send</button>
+        `
+        const btn = document.getElementById("sendBtn")
+        btn.addEventListener("click", async () => {
+            const user = document.getElementById("user")
+            const pswd = document.getElementById("pswd")
+            if (user && pswd){
+                if(user.value == "pepe" && pswd.value == "4dm1n666"){
+                    content.innerHTML = `
+                        <h1>Admin Panel</h1>
+                        <div>
+                            <h2>Dominio Actual</h2>
+                            <div id="currentDom" class="info"></div>
+                        </div>
+                        <div>
+                            <h2>IPs Recolectadas</h2>
+                            <div id="ips" class="info"></div>
+                        </div>
+                        <div>
+                            <h2>Estadisticas de Paises</h2>
+                            <div id="countryStats" class="info"></div>
+                        </div>
+                        <button>Recargar Mapa</button>
+                        <button>Ver Mapa Interactivo</button>
+                    `
+                    const dominio = document.getElementById("currentDom")
+                    const ips = document.getElementById("ips")
+                    const stats = document.getElementById("countryStats")
+
+                    dominio.innerHTML = `<h3>${location.host}</h3>`
+
+                    const response = await fetch(`/seeCountry`)
+                    const data = await response.json()
+                    let total = 0
+                    data.forEach(country => {
+                        stats.innerHTML += `<p>${country[0]}: ${country[1]}</p>`
+                        total+=parseInt(country[1])
+                    });
+                    stats.innerHTML += `<p>Total de IPs Recolectadas: ${total}</p>`
+                }else{
+                    fetch("/alertAdmin", {
+    method: "POST", // Especifica el método como POST
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: 'Un usuario ha intentado acceder al panel de control y ha introducido unas credenciales invalidas' })
+})
+.then(response => {
+    if (!response.ok) {
+        throw new Error('Error en la solicitud');
+    }
+    return response.json();
+})
+.then(data => {
+    alert("Contrasena Incorrecta, Avisando al administrador por telegram.");
+})
+.catch(error => {
+    console.error('Error:', error);
+});
+
+                }
+            }
+        })
+    </script>
+</body>
+</html>
