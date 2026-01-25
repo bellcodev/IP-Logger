@@ -5,12 +5,14 @@ from fastapi.middleware.cors import CORSMiddleware
 import requests
 import sqlite3 as sql
 import folium
+import pandas as pd
+import plotly.express as px
 import os
 from dotenv import load_dotenv
 load_dotenv()
 
-TOKEN = os.getenv('TELEGRAM_TOKEN')
-CHAT_ID = os.getenv('TELEGRAM_USER_ID')
+TOKEN = os.getenv('TELEGRAM_TOKEN') # holaaaaaa soy el desarrollador aqui cambia todo esa variable por tu token o crea un .env con el contenido de esa variable
+CHAT_ID = os.getenv('TELEGRAM_USER_ID') # aqui tambien haslo
 
 app = FastAPI()
 
@@ -22,7 +24,7 @@ app.add_middleware(
 )
 
 app.mount("/f", StaticFiles(directory="frontend"), name="f")
-
+app.mount("/start", StaticFiles(directory="."), name="start")
 
 def send_telegram_message(message: str):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
@@ -135,7 +137,7 @@ def seeMap():
     return FileResponse("mapa_ips.html")
 
 @app.get("/seeCountry")
-async def seeCountry():
+def seeCountry():
     conn = sql.connect("IPsDatabase.db")
     cursor = conn.cursor()
     cursor.execute("SELECT country, COUNT(*) as total FROM IPs GROUP BY country")
@@ -153,3 +155,33 @@ async def getMap():
 async def alertAdmin(data: dict = Body(...)):
     message = data["message"]
     send_telegram_message(message)
+
+@app.get("/stats")
+async def stats():
+    data = seeCountry()
+    pais = []
+    total = []
+    for a in data:
+        pais.append(a[0])
+        total.append(a[1])
+
+    datos = {
+        "Pais": pais,
+        "Total": total
+    }
+    df = pd.DataFrame(datos).sort_values(by="Pais")
+    fig = px.line(
+        df,
+        x="Pais",
+        y="Total",
+        markers=True,
+        title=f"Estadísticas de las IPs"
+    )
+    fig.write_image("stats.png", "png")
+
+@app.get("/getIpsFromTxt")
+async def getIpsFromTxt():
+    text = ""
+    with open("ips.txt", "r", encoding="utf-8") as f:
+        text = f.readlines()
+    return text

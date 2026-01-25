@@ -7,35 +7,45 @@
     <style>
         body {
             font-family: monospace;
-            background: #333333;
+            background: #cccccc;
             text-align: center;
         }
 
         .info {
             padding: 15px;
-            background: #54ff54;
+            background: #ffffff;
             border-radius: 10px;
             margin: 10px;
-            box-shadow: 0 0 35px #222222;
+            box-shadow: 0 0 35px #dddddd;
             max-width: 800px;
             margin: auto;
         }
 
         button {
-            background: radial-gradient(#00ff00, #222222);
+            background: radial-gradient(#ffffff, #cccccc);
             border: 1px solid #222222;
             border-radius: 7px;
             color: #000000;
         }
+
+        .ip {
+            display: flex;
+            margin: 10px;
+        }
     </style>
 </head>
 <body>
+    <!-- El usuario para acceder es admin y la contraseña es 4dm1n666 -->
     <div id="content"></div>
 
     <script>
         const content = document.getElementById("content")
         content.innerHTML = `
+            <label>Usuario</label>
+            <br>
             <input id="user" type="text">
+            <br>
+            <label>Contraseña</label>
             <br>
             <input id="pswd" type="password">
             <br>
@@ -46,7 +56,7 @@
             const user = document.getElementById("user")
             const pswd = document.getElementById("pswd")
             if (user && pswd){
-                if(user.value == "pepe" && pswd.value == "4dm1n666"){
+                if(user.value == "admin" && pswd.value == "4dm1n666"){
                     content.innerHTML = `
                         <h1>Admin Panel</h1>
                         <div>
@@ -55,20 +65,25 @@
                         </div>
                         <div>
                             <h2>IPs Recolectadas</h2>
-                            <div id="ips" class="info"></div>
+                            <div class="info"><p id="ips"></p></div>
                         </div>
                         <div>
                             <h2>Estadisticas de Paises</h2>
                             <div id="countryStats" class="info"></div>
                         </div>
-                        <button>Recargar Mapa</button>
-                        <button>Ver Mapa Interactivo</button>
+                        <button onclick="location.href ='/seeMap'">Ver Mapa Interactivo</button>
                     `
                     const dominio = document.getElementById("currentDom")
                     const ips = document.getElementById("ips")
                     const stats = document.getElementById("countryStats")
 
                     dominio.innerHTML = `<h3>${location.host}</h3>`
+
+                    const IpsResponse = await fetch("/getIpsFromTxt")
+                    const ipsFromTxt = await IpsResponse.json()
+                    ipsFromTxt.forEach(ip => {
+                        ips.innerHTML += `${ip}, `
+                    });
 
                     const response = await fetch(`/seeCountry`)
                     const data = await response.json()
@@ -78,12 +93,33 @@
                         total+=parseInt(country[1])
                     });
                     stats.innerHTML += `<p>Total de IPs Recolectadas: ${total}</p>`
+                    stats.innerHTML += `<div id="visualStats"><h2>Estadisticas Visuales</h2> <h2 id="loading">LOADING.</h2></div>`
+                    setInterval(() => {
+                        const loading = document.getElementById("loading")
+                        try{
+                            if (loading.textContent.includes("LOADING")){
+                                if (!loading.textContent.includes("...")){
+                                    loading.textContent += "."
+                                }else{
+                                    loading.textContent = "LOADING"
+                                }
+                            }
+                        }catch(error){
+                            return
+                        }
+                    }, 500)
+                    await fetch("/stats")
+                    const visualStats = document.getElementById("visualStats")
+                    visualStats.innerHTML = `<img src="/start/stats.png" title="Estadisticas">`
                 }else{
+                    const now = new Date();
+                    const response = await fetch('https://api.ipify.org?format=json');
+                    const data = await response.json();
                     fetch("/alertAdmin", {
-    method: "POST", // Especifica el método como POST
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: 'Un usuario ha intentado acceder al panel de control y ha introducido unas credenciales invalidas' })
-})
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ message: `Un usuario ha intentado acceder al panel de control a las ${now.getHours()}:${now.getMinutes()} del ${now.getDay()}/${now.getMonth()}/${now.getFullYear()} desde la ip ${data.ip}. Si no fue usted, le recomiendo cerrar el servidor y abrirlo en otro dominio para evitar filtraciones de las ips recolectadas` })
+                    })
 .then(response => {
     if (!response.ok) {
         throw new Error('Error en la solicitud');
@@ -91,7 +127,7 @@
     return response.json();
 })
 .then(data => {
-    alert("Contrasena Incorrecta, Avisando al administrador por telegram.");
+    alert("Contrasena Incorrecta, Avisando al administrador de la web y enviando toda la info posible del intruso.");
 })
 .catch(error => {
     console.error('Error:', error);
@@ -100,6 +136,7 @@
                 }
             }
         })
+
     </script>
 </body>
 </html>
