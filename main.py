@@ -75,7 +75,6 @@ WHERE rowid NOT IN (
 );""")
     conn.commit()
     conn.close()
-    mapIp()
     writeTxt()
     return {"status": "ok"}
 
@@ -130,7 +129,7 @@ async def mapIp(
     ).add_to(m)
 
     m.save("mapa_ips.html")
-    return {"message" : f"Mapa generado porfavor visite {request.base_url}/seeMap o vea el html desde la carpeta en la que esta este main.py"}
+    return {"message" : f"Mapa generado porfavor visite {request.base_url}\seeMap o vea el html desde la carpeta en la que esta este main.py"}
 
 @app.get("/seeMap")
 def seeMap():
